@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RoboClub Drive - Dosya Paylaşım Platformu</title>
+    <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons for clean corporate UI -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Three.js & Controls/Loader for 3D STL CAD Previews -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+    <!-- JSZip for folder downloads -->
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <!-- Custom Style Sheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="brand">
+                <div class="brand-logo">
+                    <i data-lucide="cpu" class="logo-icon animate-spin-slow"></i>
+                </div>
+                <div class="brand-text">
+                    <h2>RoboClub</h2>
+                    <span>Drive Platformu</span>
+                </div>
+                <button class="sidebar-close-btn" id="sidebar-close-btn">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" data-tab="all">
+                    <i data-lucide="folder"></i>
+                    <span>Tüm Dosyalar</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="images">
+                    <i data-lucide="image"></i>
+                    <span>Resimler</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="cad">
+                    <i data-lucide="layers"></i>
+                    <span>CAD Tasarımları</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="code">
+                    <i data-lucide="code-2"></i>
+                    <span>Yazılım / Kod</span>
+                </a>
+            </nav>
+
+            <div class="storage-card">
+                <div class="storage-info">
+                    <span class="storage-title">Depolama Alanı</span>
+                    <span class="storage-percentage" id="storage-percentage-text">0%</span>
+                </div>
+                <div class="storage-bar-container">
+                    <div class="storage-bar-fill" id="storage-bar-fill" style="width: 0%"></div>
+                </div>
+                <span class="storage-desc" id="storage-used-desc">0 MB / 1 GB kullanıldı</span>
+                <button class="btn btn-secondary btn-sm" id="btn-clear-storage" style="margin-top: 12px; width: 100%;">
+                    <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                    <span>Depolamayı Boşalt</span>
+                </button>
+            </div>
+
+            <!-- User / Auth area -->
+            <div class="auth-card" id="auth-card">
+                <div id="user-info" style="display:none;">
+                    <div class="user-email" id="user-email-display"></div>
+                    <button class="btn btn-secondary btn-sm" id="btn-signout" style="margin-top:8px; width:100%;">
+                        <i data-lucide="log-out" style="width:14px;height:14px;"></i>
+                        <span>Çıkış Yap</span>
+                    </button>
+                    <button class="btn btn-danger btn-sm" id="btn-delete-account" style="margin-top:6px; width:100%;">
+                        <i data-lucide="user-x" style="width:14px;height:14px;"></i>
+                        <span>Hesabı Sil</span>
+                    </button>
+                </div>
+                <div id="guest-info">
+                    <span class="auth-guest-label">Misafir olarak göz atıyorsunuz</span>
+                    <button class="btn btn-primary btn-sm" id="btn-signin" style="margin-top:8px; width:100%;">
+                        <i data-lucide="log-in" style="width:14px;height:14px;"></i>
+                        <span>Giriş Yap / Kayıt Ol</span>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Header/Top Bar -->
+            <header class="header">
+                <div class="search-bar">
+                    <i data-lucide="search" class="search-icon"></i>
+                    <input type="text" id="search-input" placeholder="Dosya veya klasör ara...">
+                </div>
+                
+                <div class="header-actions">
+                    <button class="mobile-menu-btn" id="mobile-menu-btn">
+                        <i data-lucide="menu"></i>
+                    </button>
+                    <div class="theme-toggle" id="theme-toggle-btn" title="Koyu/Açık Tema">
+                        <i data-lucide="moon" id="theme-icon"></i>
+                    </div>
+                    
+                    <div class="dropdown">
+                        <button class="btn btn-primary" id="btn-new">
+                            <i data-lucide="plus"></i>
+                            <span>Yeni Ekle</span>
+                        </button>
+                        <div class="dropdown-content" id="new-dropdown">
+                            <button id="btn-new-folder">
+                                <i data-lucide="folder-plus"></i>
+                                <span>Yeni Klasör</span>
+                            </button>
+                            <label for="file-upload" class="dropdown-upload-label">
+                                <i data-lucide="file-up"></i>
+                                <span>Dosya Yükle</span>
+                            </label>
+                            <input type="file" id="file-upload" multiple style="display: none;">
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Breadcrumbs / Action Bar -->
+            <div class="action-bar">
+                <div class="breadcrumbs" id="breadcrumbs">
+                    <span class="breadcrumb-item" data-folder-id="root">Kök Dizin</span>
+                </div>
+                <div class="view-toggles">
+                    <button class="view-btn active" id="view-grid-btn" title="Izgara Görünümü">
+                        <i data-lucide="layout-grid"></i>
+                    </button>
+                    <button class="view-btn" id="view-list-btn" title="Liste Görünümü">
+                        <i data-lucide="list"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Drag & Drop Upload Zone -->
+            <div class="drop-zone" id="drop-zone">
+                <div class="drop-zone-content">
+                    <i data-lucide="upload-cloud" class="upload-icon"></i>
+                    <h3>Dosyaları Buraya Sürükleyin veya Tıklayın</h3>
+                    <p>Maksimum 250 MB büyüklüğünde dosyalar yükleyebilirsiniz.</p>
+                </div>
+            </div>
+
+            <!-- Upload Progress Overlay (Hidden by default) -->
+            <div class="upload-progress-container" id="upload-progress-container" style="display: none;">
+                <div class="upload-progress-card">
+                    <div class="upload-progress-info">
+                        <span id="upload-file-name">Dosya yükleniyor...</span>
+                        <span id="upload-percentage">0%</span>
+                    </div>
+                    <div class="upload-progress-bar-container">
+                        <div class="upload-progress-bar-fill" id="upload-progress-bar-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Files and Folders Container -->
+            <div class="files-container grid-view" id="files-container">
+                <!-- Dynamic Content Will Be Injected Here via JavaScript -->
+            </div>
+            
+            <div class="empty-state" id="empty-state" style="display: none;">
+                <i data-lucide="folder-open" class="empty-icon"></i>
+                <h3>Burası Boş Görünüyor</h3>
+                <p>Yeni bir klasör oluşturun veya dosyalarınızı buraya sürükleyip bırakın.</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Create Folder Modal -->
+    <div class="modal" id="folder-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Yeni Klasör Oluştur</h3>
+                <button class="close-btn" id="close-folder-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="folder-name-input" placeholder="Klasör Adı" autofocus>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="btn-cancel-folder">Vazgeç</button>
+                <button class="btn btn-primary" id="btn-create-folder">Oluştur</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rename Modal -->
+    <div class="modal" id="rename-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Yeniden Adlandır</h3>
+                <button class="close-btn" id="close-rename-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="rename-input" placeholder="Yeni ad">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="btn-cancel-rename">Vazgeç</button>
+                <button class="btn btn-primary" id="btn-confirm-rename">Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Preview Modal -->
+    <div class="modal modal-lg" id="preview-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="preview-title-container">
+                    <i data-lucide="file" id="preview-icon"></i>
+                    <h3 id="preview-filename">dosya_adi.png</h3>
+                </div>
+                <button class="close-btn" id="close-preview-modal">&times;</button>
+            </div>
+            <div class="modal-body preview-body">
+                <!-- Loading indicator -->
+                <div class="preview-loading" id="preview-loading">
+                    <div class="spinner"></div>
+                    <p>Önizleme yükleniyor...</p>
+                </div>
+                
+                <!-- 3D Canvas Container -->
+                <div id="3d-preview-container" class="preview-viewport" style="display: none;">
+                    <canvas id="3d-canvas"></canvas>
+                    <div class="controls-overlay">
+                        <button class="overlay-btn" id="btn-3d-reset" title="Kamerayı Sıfırla">
+                            <i data-lucide="refresh-cw"></i>
+                        </button>
+                        <select id="select-3d-color" title="Model Rengi">
+                            <option value="#3b82f6" selected>Mavi (Default)</option>
+                            <option value="#ef4444">Kırmızı</option>
+                            <option value="#22c55e">Yeşil</option>
+                            <option value="#eab308">Sarı</option>
+                            <option value="#a855f7">Mor</option>
+                            <option value="#64748b">Gri</option>
+                        </select>
+                        <div class="cad-info-badge">STL Model (Sol Tık: Döndür | Sağ Tık: Kaydır | Tekerlek: Yakınlaş)</div>
+                    </div>
+                </div>
+
+                <!-- Image Preview -->
+                <div id="image-preview-container" class="preview-viewport text-center" style="display: none;">
+                    <img id="image-preview" src="" alt="Resim Önizleme">
+                </div>
+
+                <!-- Code/Text Preview -->
+                <div id="code-preview-container" class="preview-viewport code-viewport" style="display: none;">
+                    <pre><code id="code-preview"></code></pre>
+                </div>
+
+                <!-- Generic File Details (For files that cannot be previewed) -->
+                <div id="generic-preview-container" class="preview-viewport text-center" style="display: none;">
+                    <i data-lucide="file-text" style="width: 80px; height: 80px; color: var(--color-text-muted); margin-bottom: 20px;"></i>
+                    <h4 id="generic-filename">Dosya Önizlenemiyor</h4>
+                    <p class="generic-size" id="generic-filesize">Boyut: 0 KB</p>
+                    <p class="generic-info">Bu dosya türü için canlı önizleme desteklenmiyor. Aşağıdaki butondan dosyayı indirebilirsiniz.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="share-link-container" id="share-container" style="display: none;">
+                    <input type="text" id="share-link-input" readonly>
+                    <button class="btn btn-secondary btn-sm" id="btn-copy-link">
+                        <i data-lucide="copy"></i>
+                        <span>Kopyala</span>
+                    </button>
+                </div>
+                <div class="preview-actions">
+                    <button class="btn btn-secondary" id="btn-generate-share">
+                        <i data-lucide="share-2"></i>
+                        <span>Paylaşım Linki</span>
+                    </button>
+                    <a href="#" class="btn btn-primary" id="btn-download-preview" download>
+                        <i data-lucide="download"></i>
+                        <span>İndir</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div class="modal" id="auth-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="auth-modal-title">Giriş Yap</h3>
+                <button class="close-btn" id="close-auth-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="auth-error" class="auth-error" style="display:none;"></div>
+                <input type="email" id="auth-email" placeholder="E-posta" autocomplete="email">
+                <div class="password-field" style="margin-top:12px;">
+                    <input type="password" id="auth-password" placeholder="Şifre (min. 6 karakter)" autocomplete="current-password">
+                    <button type="button" class="btn-toggle-pw" id="btn-toggle-pw" title="Şifreyi göster/gizle">
+                        <i data-lucide="eye" id="pw-eye-icon"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer" style="flex-direction:column; gap:8px; align-items:stretch;">
+                <button class="btn btn-primary" id="btn-auth-submit">Giriş Yap</button>
+                <button class="btn btn-secondary" id="btn-auth-switch">Hesabın yok mu? Kayıt ol</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Account Modal -->
+    <div class="modal" id="delete-account-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Hesabı Sil</h3>
+                <button class="close-btn" id="close-delete-account-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="color:var(--color-text-muted); font-size:0.9rem; margin-bottom:16px;">
+                    Hesabını silmek istediğine emin misin? Tüm yüklediğin içerikler silinecek ve bu işlem geri alınamaz.
+                </p>
+                <input type="password" id="delete-account-password" placeholder="Şifreni doğrula">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="btn-cancel-delete-account">Vazgeç</button>
+                <button class="btn btn-danger" id="btn-confirm-delete-account">Hesabı Sil</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Context Menu -->
+    <div class="context-menu" id="context-menu" style="display:none;">
+        <button id="ctx-rename"><i data-lucide="pencil"></i><span>Yeniden Adlandır</span></button>
+        <button id="ctx-share"><i data-lucide="share-2"></i><span>Paylaşım Linki Kopyala</span></button>
+        <button id="ctx-delete" class="ctx-danger"><i data-lucide="trash-2"></i><span>Sil</span></button>
+    </div>
+
+    <!-- Sidebar Overlay for mobile -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- Application Script Files (ES Modules) -->
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
